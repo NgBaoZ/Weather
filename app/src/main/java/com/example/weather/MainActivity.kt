@@ -8,9 +8,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Calendar
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private val apiKey = "4c71ec5d7be8e3ba64c2108c9b2428cc" // Thay bằng API key từ OpenWeatherMap
@@ -60,8 +59,6 @@ class MainActivity : AppCompatActivity() {
             maxTempTextView.text = "Max: ${response.main.temp_max}°C"
 
             // Hiển thị tổng quát: "Sunday, Sunny 24°C"
-
-
             summaryTextView.text = "$currentDay, $currentDescription $currentTemp"
 
             // Đặt icon thời tiết từ drawable
@@ -69,25 +66,27 @@ class MainActivity : AppCompatActivity() {
             weatherIconImageView.setImageResource(weatherIcon)
         }
 
-        // (Ví dụ: Dự báo thời tiết các ngày tới, nếu sử dụng gói forecast API)
-        fetchForecastWeather("Thu Dau Mot") { forecastResponse ->
+        // Dự báo thời tiết các ngày tới
+        fetchForecastWeather(10.9804, 106.6519) { forecastResponse ->
             // CardView 1
-            cardDay1TextView.text = "Mon"
-            cardDay1IconImageView.setImageResource(R.drawable.ic_sunny)
-            cardDay1MinTempTextView.text = "24°C"
-            cardDay1MaxTempTextView.text = "32°C"
+            val day1 = forecastResponse.list[0]
+            val day2 = forecastResponse.list[8] // Dự báo cho ngày tiếp theo (3h sau)
+            val day3 = forecastResponse.list[16] // Dự báo cho ngày tiếp theo nữa (6h sau)
 
+            cardDay1TextView.text = getDayOfWeek(day1.dt_txt)
+            cardDay1IconImageView.setImageResource(getWeatherIcon(day1.weather[0].icon))
+            cardDay1MinTempTextView .text = "Min: ${day1.main.temp_min}°C"
+            cardDay1MaxTempTextView.text = "Max: ${day1.main.temp_max}°C"
 
-            cardDay2TextView.text = "Tue"
-            cardDay2IconImageView.setImageResource(R.drawable.ic_cloudy)
-            cardDay2MinTempTextView.text = "22°C"
-            cardDay2MaxTempTextView.text = "30°C"
+            cardDay2TextView.text = getDayOfWeek(day2.dt_txt)
+            cardDay2IconImageView.setImageResource(getWeatherIcon(day2.weather[0].icon))
+            cardDay2MinTempTextView.text = "Min: ${day2.main.temp_min}°C"
+            cardDay2MaxTempTextView.text = "Max: ${day2.main.temp_max}°C"
 
-
-            cardDay3TextView.text = "Wed"
-            cardDay3IconImageView.setImageResource(R.drawable.ic_snowy)
-            cardDay3MinTempTextView.text = "15°C"
-            cardDay3MaxTempTextView.text = "20°C"
+            cardDay3TextView.text = getDayOfWeek(day3.dt_txt)
+            cardDay3IconImageView.setImageResource(getWeatherIcon(day3.weather[0].icon))
+            cardDay3MinTempTextView.text = "Min: ${day3.main.temp_min}°C"
+            cardDay3MaxTempTextView.text = "Max: ${day3.main.temp_max}°C"
         }
     }
 
@@ -111,6 +110,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getDayOfWeek(dt: String): String {
+        // Chuyển dt từ String sang Long
+        val timeInMillis = dt.toLong() * 1000 // Chuyển đổi thành milliseconds
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = timeInMillis
+        val format = SimpleDateFormat("EEE", Locale.getDefault())
+        return format.format(calendar.time)
+    }
+
     private fun fetchCurrentWeather(city: String, callback: (WeatherResponse) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -124,10 +132,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun fetchForecastWeather(city: String, callback: (ForecastResponse) -> Unit) {
+    private fun fetchForecastWeather(lat: Double, lon: Double, callback: (ForecastResponse) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitInstance.api.getWeatherForecast(city, apiKey)
+                val response = RetrofitInstance.api.getWeatherForecast(lat.toString(),
+                    lon.toString(), apiKey)
                 withContext(Dispatchers.Main) {
                     callback(response)
                 }
@@ -137,4 +146,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+
+
 
